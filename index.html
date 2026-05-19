@@ -55,7 +55,8 @@ h1{font-size:20px;font-weight:600;margin-bottom:2px}
 .pair{display:grid;grid-template-columns:1fr 20px 1fr 34px;gap:5px;align-items:center;margin-bottom:7px}
 select,input[type=text],input[type=date]{width:100%;padding:7px 8px;border:0.5px solid rgba(0,0,0,0.2);border-radius:8px;background:var(--card);color:var(--text);font-size:13px;font-family:inherit;outline:none}
 select:focus,input:focus{border-color:var(--accent)}
-.map-container{background:var(--metric);border:0.5px solid #ddd;border-radius:8px;overflow:hidden}
+.map-container{background:var(--metric);border:0.5px solid #ddd;border-radius:8px;overflow:hidden;width:100%}
+.map-container canvas{width:100%!important;height:auto!important;display:block}
 .map-tabs{display:flex;gap:0;margin-bottom:.7rem;border:0.5px solid rgba(0,0,0,0.2);border-radius:8px;overflow:hidden;width:fit-content;flex-wrap:wrap}
 .map-tab{padding:5px 14px;font-size:12px;cursor:pointer;background:transparent;border:none;color:var(--muted);font-family:inherit}
 .map-tab:hover{background:var(--metric)}
@@ -885,7 +886,10 @@ function updateTabs(){$('map-tabs').querySelectorAll('.map-tab').forEach((b,i)=>
 // ===================== DRAW MAP (unificado) =====================
 function drawMapOn(canvasId,res,idx){
   const cv=document.getElementById(canvasId);if(!cv)return;
-  const ctx=cv.getContext('2d'),W=cv.width,H=cv.height;
+  const W=cv.parentElement.clientWidth||360;
+  const H=Math.round(W*0.55);
+  cv.width=W;cv.height=H;
+  const ctx=cv.getContext('2d');
   ctx.clearRect(0,0,W,H);ctx.fillStyle='#f5f4f0';ctx.fillRect(0,0,W,H);
   const dl=idx<0?res:[res[idx]];if(!dl.length)return;
   const allP=dl.flatMap(r=>[...r.floorPts,...r.acoPts]);
