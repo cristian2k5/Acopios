@@ -638,6 +638,7 @@ function confirmarBorrarTodo(){
 // ===================== CÁLCULO (wizard) =====================
 function initCalc(){
   rows=[];allCodes=[];results=[];pts=[];fmt='PNEZD';activeTab=0;
+  resetCodeColors();
   ['panel-upload','panel-format','panel-results'].forEach((id,i)=>{
     document.getElementById(id).style.display=i===0?'block':'none';
   });
@@ -884,10 +885,75 @@ function buildMapTabs(){
 function updateTabs(){$('map-tabs').querySelectorAll('.map-tab').forEach((b,i)=>b.className='map-tab'+(i===activeTab?' active':''));}
 
 // ===================== DRAW MAP (unificado) =====================
-function drawMapOn(canvasId,res,idx){
+// ===================== MAPA CON ZOOM/PANEO Y COLORES POR CÓDIGO =====================
+const CODE_PAL=['#1D9E75','#378ADD','#D85A30','#BA7517','#D4537E','#639922','#7F77DD','#888780'];
+const CODE_PAL_LIGHT=['#9FE1CB','#B5D4F4','#F5C4B3','#FAC775','#F4C0D1','#C0DD97','#CECBF6','#D3D1C7'];
+const codeColorMap={};
+let codeColorIdx=0;
+function getCodeColor(code,light=false){
+  if(!codeColorMap[code]){codeColorMap[code]=codeColorIdx++;} 
+  const i=codeColorMap[code];
+  return light?CODE_PAL_LIGHT[i%CODE_PAL_LIGHT.length]:CODE_PAL[i%CODE_PAL.length];
+}
+function resetCodeColors(){for(const k in codeColorMap)delete codeColorMap[k];codeColorIdx=0;}
+
+// Estado de zoom/paneo por canvas
+const mapState={};
+function getMapState(id){
+  if(!mapState[id])mapState[id]={zoom:1,panX:0,panY:0,dragging:false,lastX:0,lastY:0,lastDist:0,baseEMin:0,baseEMax:1,baseNMin:0,baseNMax:1,baseW:1,baseH:1,pad:44};
+  return mapState[id];
+}
+
+function initMapInteraction(cv,res,idx){
+  const id=cv.id;
+  const st=getMapState(id);
+  st.zoom=1;st.panX=0;st.panY=0;
+  cv.onpointerdown=null;cv.onpointermove=null;cv.onpointerup=null;cv.onwheel=null;
+  let touches={};
+  cv.addEventListener('touchstart',e=>{
+    e.preventDefault();
+    if(e.touches.length===1){st.dragging=true;st.lastX=e.touches[0].clientX;st.lastY=e.touches[0].clientY;}
+    if(e.touches.length===2){
+      const dx=e.touches[0].clientX-e.touches[1].clientX,dy=e.touches[0].clientY-e.touches[1].clientY;
+      st.lastDist=Math.sqrt(dx*dx+dy*dy);
+    }
+  },{passive:false});
+  cv.addEventListener('touchmove',e=>{
+    e.preventDefault();
+    if(e.touches.length===1&&st.dragging){
+      const dx=e.touches[0].clientX-st.lastX,dy=e.touches[0].clientY-st.lastY;
+      st.panX+=dx;st.panY+=dy;st.lastX=e.touches[0].clientX;st.lastY=e.touches[0].clientY;
+      redrawMap(cv,res,idx);
+    }
+    if(e.touches.length===2){
+      const dx=e.touches[0].clientX-e.touches[1].clientX,dy=e.touches[0].clientY-e.touches[1].clientY;
+      const dist=Math.sqrt(dx*dx+dy*dy);
+      if(st.lastDist>0){const factor=dist/st.lastDist;st.zoom=Math.max(0.5,Math.min(10,st.zoom*factor));}
+      st.lastDist=dist;redrawMap(cv,res,idx);
+    }
+  },{passive:false});
+  cv.addEventListener('touchend',e=>{st.dragging=false;st.lastDist=0;});
+  cv.addEventListener('wheel',e=>{
+    e.preventDefault();
+    const factor=e.deltaY<0?1.1:0.9;
+    st.zoom=Math.max(0.5,Math.min(10,st.zoom*factor));
+    redrawMap(cv,res,idx);
+  },{passive:false});
+  // Doble tap para reset
+  let lastTap=0;
+  cv.addEventListener('touchend',e=>{
+    const now=Date.now();
+    if(now-lastTap<300){st.zoom=1;st.panX=0;st.panY=0;redrawMap(cv,res,idx);}
+    lastTap=now;
+  });
+}
+
+function redrawMap(cv,res,idx){drawMapOn(cv.id,res,idx,true);}
+
+function drawMapOn(canvasId,res,idx,keepState=false){
   const cv=document.getElementById(canvasId);if(!cv)return;
   const W=cv.parentElement.clientWidth||360;
-  const H=Math.round(W*0.55);
+  const H=Math.round(W*0.65);
   cv.width=W;cv.height=H;
   const ctx=cv.getContext('2d');
   ctx.clearRect(0,0,W,H);ctx.fillStyle='#f5f4f0';ctx.fillRect(0,0,W,H);
@@ -895,39 +961,85 @@ function drawMapOn(canvasId,res,idx){
   const allP=dl.flatMap(r=>[...r.floorPts,...r.acoPts]);
   const es=allP.map(p=>p.e),ns=allP.map(p=>p.n);
   const eMin=Math.min(...es),eMax=Math.max(...es),nMin=Math.min(...ns),nMax=Math.max(...ns);
-  const pad=44,sx=(W-2*pad)/(eMax-eMin||1),sy=(H-2*pad)/(nMax-nMin||1),sc=Math.min(sx,sy);
-  const offX=pad+(W-2*pad-(eMax-eMin)*sc)/2,offY=pad+(H-2*pad-(nMax-nMin)*sc)/2;
+  const pad=44;
+  const baseSX=(W-2*pad)/(eMax-eMin||1),baseSY=(H-2*pad)/(nMax-nMin||1),baseSC=Math.min(baseSX,baseSY);
+  const st=getMapState(canvasId);
+  if(!keepState){st.zoom=1;st.panX=0;st.panY=0;}
+  const sc=baseSC*st.zoom;
+  const baseOffX=pad+(W-2*pad-(eMax-eMin)*baseSC)/2;
+  const baseOffY=pad+(H-2*pad-(nMax-nMin)*baseSC)/2;
+  const offX=baseOffX+st.panX,offY=baseOffY+st.panY;
   const toX=e=>offX+(e-eMin)*sc,toY=n=>H-offY-(n-nMin)*sc;
+
+  // Hint zoom
+  ctx.save();ctx.font='10px sans-serif';ctx.fillStyle='rgba(100,100,100,0.5)';ctx.textAlign='right';
+  ctx.fillText('pellizca para zoom · doble tap para resetear',W-8,H-6);ctx.restore();
+
   dl.forEach((r,ri)=>{
-    const col=PAL[ri%PAL.length],colLight=PAL_LIGHT[ri%PAL_LIGHT.length];
     const fp=r.floorPts,ap=r.acoPts,allRP=[...fp,...ap];
     const rzs=allRP.map(p=>p.z),rzMin=Math.min(...rzs),rzMax=Math.max(...rzs);
+    // Colores por código
+    const colFl=getCodeColor(r.fl),colFlLight=getCodeColor(r.fl,true);
+    const colAp=getCodeColor(r.tp),colApLight=getCodeColor(r.tp,true);
     const hPts=hull(allRP.map(p=>[p.e,p.n]));
+    // Relleno hull
     ctx.beginPath();hPts.forEach((p,i)=>i===0?ctx.moveTo(toX(p[0]),toY(p[1])):ctx.lineTo(toX(p[0]),toY(p[1])));
-    ctx.closePath();ctx.fillStyle=colLight+'55';ctx.fill();
+    ctx.closePath();ctx.fillStyle=colApLight+'44';ctx.fill();
+    // Curvas de nivel del acopio (color acopio)
     r.acoContour.contours.forEach((c,ci)=>{
-      ctx.beginPath();ctx.strokeStyle=col+(Math.round(80+ci*20).toString(16));ctx.lineWidth=0.8;
+      ctx.beginPath();
+      const alpha=Math.round(90+ci*22).toString(16).padStart(2,'0');
+      ctx.strokeStyle=colAp+alpha;ctx.lineWidth=0.9;
       c.segs.forEach(s=>{ctx.moveTo(toX(s[0]),toY(s[1]));ctx.lineTo(toX(s[2]),toY(s[3]));});
       ctx.stroke();
     });
+    // Curvas de nivel del piso (color terreno)
+    r.floorContour.contours.forEach((c,ci)=>{
+      ctx.beginPath();
+      const alpha=Math.round(60+ci*18).toString(16).padStart(2,'0');
+      ctx.strokeStyle=colFl+alpha;ctx.lineWidth=0.6;ctx.setLineDash([3,3]);
+      c.segs.forEach(s=>{ctx.moveTo(toX(s[0]),toY(s[1]));ctx.lineTo(toX(s[2]),toY(s[3]));});
+      ctx.stroke();ctx.setLineDash([]);
+    });
+    // Contorno perimetral
     ctx.beginPath();hPts.forEach((p,i)=>i===0?ctx.moveTo(toX(p[0]),toY(p[1])):ctx.lineTo(toX(p[0]),toY(p[1])));
-    ctx.closePath();ctx.strokeStyle=col;ctx.lineWidth=1.5;ctx.setLineDash([6,3]);ctx.stroke();ctx.setLineDash([]);
-    fp.forEach(p=>{ctx.beginPath();ctx.arc(toX(p.e),toY(p.n),3,0,Math.PI*2);ctx.fillStyle='#fff';ctx.fill();ctx.strokeStyle=col;ctx.lineWidth=1.2;ctx.stroke();});
-    ap.forEach(p=>{const rel=(p.z-rzMin)/(rzMax-rzMin||1);ctx.beginPath();ctx.arc(toX(p.e),toY(p.n),2+rel*4,0,Math.PI*2);ctx.fillStyle=col;ctx.fill();});
+    ctx.closePath();ctx.strokeStyle=colAp;ctx.lineWidth=1.5;ctx.setLineDash([6,3]);ctx.stroke();ctx.setLineDash([]);
+    // Puntos terreno natural (color terreno)
+    fp.forEach(p=>{ctx.beginPath();ctx.arc(toX(p.e),toY(p.n),3,0,Math.PI*2);ctx.fillStyle='#fff';ctx.fill();ctx.strokeStyle=colFl;ctx.lineWidth=1.5;ctx.stroke();});
+    // Puntos acopio (color acopio, tamaño por altura)
+    ap.forEach(p=>{const rel=(p.z-rzMin)/(rzMax-rzMin||1);ctx.beginPath();ctx.arc(toX(p.e),toY(p.n),2+rel*5,0,Math.PI*2);ctx.fillStyle=colAp;ctx.fill();});
+    // Etiqueta
     const cx=allRP.reduce((s,p)=>s+p.e,0)/allRP.length,cy=allRP.reduce((s,p)=>s+p.n,0)/allRP.length;
-    ctx.font='bold 11px sans-serif';ctx.fillStyle=col;ctx.textAlign='center';
+    ctx.font='bold 11px sans-serif';ctx.fillStyle=colAp;ctx.textAlign='center';
     ctx.fillText(r.name+' · '+r.vol.toFixed(0)+' m³',toX(cx),toY(cy)-8);
   });
-  const scaleM=Math.pow(10,Math.floor(Math.log10((eMax-eMin)/4)||0));
-  const scalePx=scaleM*sc,sx2=W-pad-scalePx,sy2=H-14;
+
+  // Escala
+  const scaleM=Math.pow(10,Math.floor(Math.log10((eMax-eMin)/(4*st.zoom))||0));
+  const scalePx=scaleM*sc,sx2=W-pad-scalePx,sy2=H-22;
   ctx.strokeStyle='#555';ctx.lineWidth=1.5;ctx.setLineDash([]);
   ctx.beginPath();ctx.moveTo(sx2,sy2);ctx.lineTo(sx2+scalePx,sy2);ctx.stroke();
   [sx2,sx2+scalePx].forEach(x=>{ctx.beginPath();ctx.moveTo(x,sy2-4);ctx.lineTo(x,sy2+4);ctx.stroke();});
   ctx.font='10px sans-serif';ctx.fillStyle='#555';ctx.textAlign='center';ctx.fillText(scaleM+' m',sx2+scalePx/2,sy2-7);
+  // Norte
   ctx.save();ctx.translate(pad-10,pad+10);ctx.strokeStyle='#555';ctx.fillStyle='#555';ctx.lineWidth=1.2;
   ctx.beginPath();ctx.moveTo(0,12);ctx.lineTo(0,-12);ctx.stroke();
   ctx.beginPath();ctx.moveTo(0,-12);ctx.lineTo(-5,-5);ctx.lineTo(5,-5);ctx.closePath();ctx.fill();
   ctx.font='bold 11px sans-serif';ctx.textAlign='center';ctx.fillText('N',0,22);ctx.restore();
+
+  // Leyenda de códigos
+  const allCodes=[...new Set(dl.flatMap(r=>[r.fl,r.tp]))];
+  let lx=pad,ly=H-8;
+  ctx.font='10px sans-serif';ctx.textAlign='left';
+  allCodes.forEach(code=>{
+    const col=getCodeColor(code);
+    ctx.fillStyle=col;ctx.fillRect(lx,ly-7,10,8);
+    ctx.fillStyle='#444';ctx.fillText(code,lx+13,ly);
+    lx+=ctx.measureText(code).width+28;
+  });
+
+  // Iniciar interacción touch
+  initMapInteraction(cv,res,idx);
 }
 
 // ===================== EXPORTAR =====================
