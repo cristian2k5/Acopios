@@ -1,0 +1,1002 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Acopios">
+<meta name="theme-color" content="#1a1a1a">
+<title>Calculadora Volumétrica de Acopios</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+:root{--bg:#f0efeb;--card:#fff;--border:rgba(0,0,0,0.12);--text:#1a1a1a;--muted:#666;--accent:#1D9E75;--accent-light:#E1F5EE;--danger:#D85A30;--info:#1d4ed8;--info-bg:#eff6ff;--info-border:#bfdbfe;--metric:#f5f4f0;--shadow:0 1px 4px rgba(0,0,0,0.08)}
+body{font-family:system-ui,-apple-system,sans-serif;font-size:14px;color:var(--text);background:var(--bg);min-height:100vh;padding-top:env(safe-area-inset-top);padding-bottom:env(safe-area-inset-bottom)}
+.container{max-width:780px;margin:0 auto;padding:1.5rem 1rem}
+h1{font-size:20px;font-weight:600;margin-bottom:2px}
+.subtitle{font-size:12px;color:var(--muted);margin-bottom:1.25rem}
+.card{background:var(--card);border:0.5px solid var(--border);border-radius:12px;padding:1rem 1.1rem;margin-bottom:.85rem}
+.card-title{font-size:15px;font-weight:500;margin-bottom:.7rem}
+.muted{color:var(--muted);font-size:13px}
+.info-box{background:var(--info-bg);border:0.5px solid var(--info-border);border-radius:8px;padding:.55rem .85rem;margin-bottom:.7rem;font-size:12px;color:var(--info);line-height:1.6}
+.btn{display:inline-flex;align-items:center;gap:5px;padding:7px 13px;border:0.5px solid rgba(0,0,0,0.2);border-radius:8px;background:transparent;color:var(--text);font-size:13px;cursor:pointer;font-family:inherit;white-space:nowrap}
+.btn:hover{background:var(--metric)}
+.btn:active{transform:scale(0.97)}
+.btn-primary{background:var(--text);color:#fff;border-color:var(--text)}
+.btn-primary:hover{background:#333}
+.btn-danger{color:var(--danger);border-color:rgba(216,90,48,0.3)}
+.btn-danger:hover{background:#fdf2ee}
+.btn-accent{background:var(--accent);color:#fff;border-color:var(--accent)}
+.btn-accent:hover{background:#178a64}
+.btn-sm{padding:5px 10px;font-size:12px}
+.btn-row{display:flex;gap:7px;flex-wrap:wrap;margin-top:.7rem}
+.drop-zone{border:1.5px dashed rgba(0,0,0,0.2);border-radius:10px;padding:2rem;text-align:center;cursor:pointer;transition:background .15s}
+.drop-zone:hover,.drop-zone:active{background:var(--metric)}
+.drop-icon{font-size:28px;margin-bottom:.4rem}
+.metric-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(100px,1fr));gap:7px;margin-top:.7rem}
+.metric{background:var(--metric);border-radius:8px;padding:.65rem .85rem}
+.metric-label{font-size:11px;color:var(--muted);margin-bottom:3px}
+.metric-value{font-size:16px;font-weight:500}
+.result-block{border-left:3px solid var(--accent);padding-left:11px;margin-bottom:.9rem}
+.steps{display:flex;gap:5px;margin-bottom:1.1rem;flex-wrap:wrap}
+.step{font-size:12px;padding:3px 11px;border-radius:20px;background:#e8e7e3;color:var(--muted)}
+.step.active{background:var(--text);color:#fff}
+.step.done{background:#d1fae5;color:#065f46}
+.format-btn{display:inline-flex;align-items:center;justify-content:center;padding:9px 18px;border:0.5px solid rgba(0,0,0,0.2);border-radius:8px;cursor:pointer;font-size:14px;font-weight:600;letter-spacing:2px;background:transparent;color:var(--text);font-family:monospace}
+.format-btn:hover{background:var(--metric)}
+.format-btn.selected{background:var(--text);color:#fff;border-color:var(--text)}
+.format-grid{display:flex;gap:9px;flex-wrap:wrap;margin-bottom:.85rem}
+.preview-wrap{overflow-x:auto;margin-top:.7rem}
+.preview-table{width:100%;border-collapse:collapse;font-size:12px}
+.preview-table th{padding:5px 9px;text-align:left;border:0.5px solid #ddd;font-weight:500;background:var(--metric);white-space:nowrap}
+.preview-table td{padding:5px 9px;border:0.5px solid #ddd;color:#555}
+.tag{display:inline-block;font-size:11px;padding:2px 8px;border-radius:20px;background:var(--metric);border:0.5px solid #ddd;margin:2px}
+.pair{display:grid;grid-template-columns:1fr 20px 1fr 34px;gap:5px;align-items:center;margin-bottom:7px}
+select,input[type=text],input[type=date]{width:100%;padding:7px 8px;border:0.5px solid rgba(0,0,0,0.2);border-radius:8px;background:var(--card);color:var(--text);font-size:13px;font-family:inherit;outline:none}
+select:focus,input:focus{border-color:var(--accent)}
+.map-container{background:var(--metric);border:0.5px solid #ddd;border-radius:8px;overflow:hidden}
+.map-tabs{display:flex;gap:0;margin-bottom:.7rem;border:0.5px solid rgba(0,0,0,0.2);border-radius:8px;overflow:hidden;width:fit-content;flex-wrap:wrap}
+.map-tab{padding:5px 14px;font-size:12px;cursor:pointer;background:transparent;border:none;color:var(--muted);font-family:inherit}
+.map-tab:hover{background:var(--metric)}
+.map-tab.active{background:var(--text);color:#fff}
+.legend{margin-top:9px;display:flex;gap:12px;flex-wrap:wrap;font-size:12px;color:var(--muted)}
+.legend span{display:inline-flex;align-items:center;gap:5px}
+.dxf-info{background:#f0fdf4;border:0.5px solid #bbf7d0;border-radius:8px;padding:.55rem .85rem;margin-top:.45rem;font-size:12px;color:#166534;line-height:1.6}
+
+/* PANTALLAS */
+.screen{display:none}
+.screen.active{display:block}
+
+/* LISTA DE TRABAJOS */
+.job-list{display:flex;flex-direction:column;gap:.6rem}
+.job-item{background:var(--card);border:0.5px solid var(--border);border-radius:10px;padding:.85rem 1rem;cursor:pointer;transition:background .12s;display:flex;justify-content:space-between;align-items:flex-start;gap:.5rem}
+.job-item:hover{background:#fafaf8}
+.job-item:active{background:var(--metric)}
+.job-meta{flex:1}
+.job-name{font-weight:500;font-size:14px;margin-bottom:3px}
+.job-detail{font-size:12px;color:var(--muted)}
+.job-badge{background:var(--accent-light);color:#065f46;border-radius:20px;font-size:11px;padding:2px 9px;white-space:nowrap;align-self:flex-start;margin-top:2px}
+.job-actions{display:flex;gap:5px;align-items:flex-start}
+.empty-state{text-align:center;padding:3rem 1rem;color:var(--muted)}
+.empty-icon{font-size:36px;margin-bottom:.75rem}
+
+/* FORMULARIO TRABAJO */
+.field-group{margin-bottom:.85rem}
+.field-label{font-size:12px;color:var(--muted);margin-bottom:4px;display:block}
+
+/* HEADER TRABAJO */
+.job-header{background:var(--card);border:0.5px solid var(--border);border-radius:10px;padding:.85rem 1rem;margin-bottom:.85rem}
+.job-header-name{font-size:17px;font-weight:600}
+.job-header-meta{font-size:12px;color:var(--muted);margin-top:3px}
+
+/* CALC HISTORY */
+.calc-item{background:var(--card);border:0.5px solid var(--border);border-radius:10px;padding:.85rem 1rem;margin-bottom:.6rem}
+.calc-item-header{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:.5rem}
+.calc-date{font-size:11px;color:var(--muted)}
+.calc-name{font-size:13px;font-weight:500}
+.calc-summary{font-size:12px;color:var(--muted);margin-top:4px}
+
+/* NAV BOTTOM */
+.bottom-nav{position:fixed;bottom:0;left:0;right:0;background:var(--card);border-top:0.5px solid var(--border);display:flex;justify-content:space-around;padding:.5rem 0 calc(.5rem + env(safe-area-inset-bottom));z-index:100}
+.nav-btn{display:flex;flex-direction:column;align-items:center;gap:3px;font-size:11px;color:var(--muted);background:none;border:none;cursor:pointer;padding:.3rem .8rem;border-radius:8px;font-family:inherit}
+.nav-btn.active{color:var(--text)}
+.nav-icon{font-size:22px}
+.main-content{padding-bottom:80px}
+
+/* MODAL */
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.45);z-index:200;display:flex;align-items:flex-end;justify-content:center}
+.modal-overlay.hidden{display:none}
+.modal-sheet{background:var(--card);border-radius:16px 16px 0 0;padding:1.25rem 1rem calc(1.25rem + env(safe-area-inset-bottom));width:100%;max-width:780px;max-height:90vh;overflow-y:auto}
+.modal-handle{width:40px;height:4px;background:#ddd;border-radius:2px;margin:0 auto 1rem}
+.modal-title{font-size:16px;font-weight:600;margin-bottom:1rem}
+
+/* BACK BTN */
+.back-btn{display:inline-flex;align-items:center;gap:4px;color:var(--muted);font-size:13px;background:none;border:none;cursor:pointer;padding:0;margin-bottom:.75rem;font-family:inherit}
+.back-btn:hover{color:var(--text)}
+
+/* TOAST */
+.toast{position:fixed;bottom:calc(80px + env(safe-area-inset-bottom));left:50%;transform:translateX(-50%) translateY(20px);background:#1a1a1a;color:#fff;font-size:13px;padding:9px 18px;border-radius:20px;opacity:0;transition:opacity .2s,transform .2s;z-index:300;white-space:nowrap;pointer-events:none}
+.toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+</style>
+</head>
+<body>
+
+<!-- TOAST -->
+<div class="toast" id="toast"></div>
+
+<!-- BOTTOM NAV -->
+<div class="bottom-nav" id="bottom-nav">
+  <button class="nav-btn active" id="nav-trabajos" onclick="showScreen('trabajos')">
+    <span class="nav-icon">📁</span>Trabajos
+  </button>
+  <button class="nav-btn" id="nav-nuevo" onclick="showScreen('nuevo-trabajo')">
+    <span class="nav-icon">➕</span>Nuevo
+  </button>
+  <button class="nav-btn" id="nav-acerca" onclick="showScreen('acerca')">
+    <span class="nav-icon">ℹ️</span>Acerca
+  </button>
+</div>
+
+<!-- ===================== PANTALLA: TRABAJOS ===================== -->
+<div id="screen-trabajos" class="screen active">
+  <div class="container main-content">
+    <h1>📐 Acopios</h1>
+    <p class="subtitle">Mis trabajos</p>
+    <div id="job-list-wrap"></div>
+  </div>
+</div>
+
+<!-- ===================== PANTALLA: NUEVO TRABAJO ===================== -->
+<div id="screen-nuevo-trabajo" class="screen">
+  <div class="container main-content">
+    <h1>Nuevo trabajo</h1>
+    <p class="subtitle">Completa los datos del proyecto</p>
+    <div class="card">
+      <div class="field-group">
+        <label class="field-label">Nombre del trabajo *</label>
+        <input type="text" id="nt-nombre" placeholder="Ej: Cantera Norte — Mayo 2026">
+      </div>
+      <div class="field-group">
+        <label class="field-label">Cliente</label>
+        <input type="text" id="nt-cliente" placeholder="Ej: Minera XYZ S.A.">
+      </div>
+      <div class="field-group">
+        <label class="field-label">Ubicación</label>
+        <input type="text" id="nt-ubicacion" placeholder="Ej: Quilicura, Santiago">
+      </div>
+      <div class="field-group">
+        <label class="field-label">Fecha</label>
+        <input type="date" id="nt-fecha">
+      </div>
+    </div>
+    <div class="btn-row">
+      <button class="btn btn-primary" onclick="crearTrabajo()">Crear trabajo</button>
+      <button class="btn" onclick="showScreen('trabajos')">Cancelar</button>
+    </div>
+  </div>
+</div>
+
+<!-- ===================== PANTALLA: DETALLE TRABAJO ===================== -->
+<div id="screen-trabajo" class="screen">
+  <div class="container main-content">
+    <button class="back-btn" onclick="showScreen('trabajos')">← Trabajos</button>
+    <div id="job-header-wrap"></div>
+    <div class="btn-row" style="margin-bottom:.85rem">
+      <button class="btn btn-accent" onclick="showScreen('calc')">＋ Nuevo cálculo</button>
+      <button class="btn btn-sm" onclick="openEditJob()">✏️ Editar</button>
+      <button class="btn btn-danger btn-sm" onclick="confirmarEliminarTrabajo()">🗑 Eliminar trabajo</button>
+    </div>
+    <div id="calcs-wrap"></div>
+  </div>
+</div>
+
+<!-- ===================== PANTALLA: CÁLCULO (wizard 4 pasos) ===================== -->
+<div id="screen-calc" class="screen">
+  <div class="container main-content">
+    <button class="back-btn" onclick="showScreen('trabajo')">← Volver al trabajo</button>
+    <h1 style="font-size:17px;margin-bottom:4px">Nuevo cálculo</h1>
+    <p class="subtitle" id="calc-job-subtitle"></p>
+
+    <div class="steps">
+      <span class="step active" id="s1">1 · CSV</span>
+      <span class="step" id="s2">2 · Formato</span>
+      <span class="step" id="s3">3 · Calcular</span>
+      <span class="step" id="s4">4 · Exportar</span>
+    </div>
+
+    <!-- PASO 1 -->
+    <div id="panel-upload" class="card">
+      <p class="card-title">Cargar archivo CSV</p>
+      <div class="drop-zone" id="dropzone" onclick="document.getElementById('fin').click()">
+        <div class="drop-icon">⬆️</div>
+        <p style="font-weight:500">Toca para seleccionar CSV</p>
+        <p class="muted" style="margin-top:3px">Formato Civil 3D · cualquier encoding</p>
+      </div>
+      <input type="file" id="fin" accept=".csv,.txt" style="display:none">
+      <p id="status" class="muted" style="margin-top:.5rem"></p>
+    </div>
+
+    <!-- PASO 2 -->
+    <div id="panel-format" class="card" style="display:none">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:.7rem">
+        <p class="card-title" style="margin-bottom:0">Formato de columnas</p>
+        <button class="btn btn-sm" onclick="goBack(1)" style="color:var(--muted)">← Volver</button>
+      </div>
+      <p class="muted" style="margin-bottom:.7rem">Igual que en Civil 3D:</p>
+      <div class="format-grid">
+        <button class="format-btn" id="fmt-PNEZD" onclick="selectFormat('PNEZD')">PNEZD</button>
+        <button class="format-btn" id="fmt-PENZD" onclick="selectFormat('PENZD')">PENZD</button>
+        <button class="format-btn" id="fmt-NEZD"  onclick="selectFormat('NEZD')">NEZD</button>
+        <button class="format-btn" id="fmt-ENZD"  onclick="selectFormat('ENZD')">ENZD</button>
+      </div>
+      <p class="muted" style="margin-bottom:.7rem;font-size:12px">P=N°pto · N=Norte · E=Este · Z=Cota · D=Código</p>
+      <p class="card-title">Vista previa</p>
+      <div class="preview-wrap" id="preview-wrap"></div>
+      <p id="format-status" class="muted" style="margin-top:.4rem"></p>
+      <p class="card-title" style="margin-top:.85rem">Códigos detectados</p>
+      <div id="codes-wrap"></div>
+      <p class="card-title" style="margin-top:.85rem">Acopios a calcular</p>
+      <div class="info-box">ℹ️ Asocia un código de <strong>terreno natural</strong> con uno de <strong>acopio</strong> por cada volumen a calcular.</div>
+      <div id="pairs-wrap"></div>
+      <div class="btn-row" style="justify-content:flex-end">
+        <button class="btn btn-primary" onclick="runCalc()">🧮 Calcular volúmenes</button>
+      </div>
+      <p id="calc-status" class="muted" style="margin-top:.4rem"></p>
+    </div>
+
+    <!-- RESULTADOS -->
+    <div id="panel-results" style="display:none">
+      <div class="card">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:.7rem">
+          <p class="card-title" style="margin-bottom:0">Resultados</p>
+          <button class="btn btn-sm" onclick="goBack(2)" style="color:var(--muted)">← Volver</button>
+        </div>
+        <div id="results-wrap"></div>
+        <div class="metric-grid" id="totals-wrap"></div>
+      </div>
+      <div class="card">
+        <p class="card-title">Visualización</p>
+        <div class="map-tabs" id="map-tabs"></div>
+        <div class="map-container"><canvas id="mapcanvas" width="720" height="360"></canvas></div>
+        <div class="legend" id="legend"></div>
+      </div>
+      <div class="card">
+        <p class="card-title">Exportar</p>
+        <div class="btn-row">
+          <button class="btn" onclick="exportPDF()">📄 PDF</button>
+          <button class="btn" onclick="exportDXF()">📦 DXF</button>
+          <button class="btn" onclick="exportCSVRes()">📊 CSV</button>
+        </div>
+        <div class="dxf-info" id="dxf-info" style="display:none"><strong>Capas DXF:</strong><br><span id="dxf-layers"></span></div>
+        <p id="exp-status" class="muted" style="margin-top:.4rem"></p>
+      </div>
+      <div class="card">
+        <p class="card-title">Guardar en trabajo</p>
+        <div class="field-group">
+          <label class="field-label">Nombre del cálculo (opcional)</label>
+          <input type="text" id="calc-save-name" placeholder="Ej: Acopio sector A — revisión 2">
+        </div>
+        <div class="btn-row">
+          <button class="btn btn-accent" onclick="guardarCalculo()">💾 Guardar resultado</button>
+        </div>
+        <p id="save-status" class="muted" style="margin-top:.4rem"></p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ===================== PANTALLA: VER CÁLCULO GUARDADO ===================== -->
+<div id="screen-ver-calculo" class="screen">
+  <div class="container main-content">
+    <button class="back-btn" onclick="showScreen('trabajo')">← Volver al trabajo</button>
+    <div id="ver-calc-wrap"></div>
+  </div>
+</div>
+
+<!-- ===================== PANTALLA: ACERCA ===================== -->
+<div id="screen-acerca" class="screen">
+  <div class="container main-content">
+    <h1>Acerca</h1>
+    <p class="subtitle">Calculadora Volumétrica de Acopios</p>
+    <div class="card">
+      <p class="card-title">Información</p>
+      <p style="font-size:13px;line-height:1.7;color:var(--muted)">
+        Calcula volúmenes de acopios por comparación de superficies TIN (método Delaunay — Bowyer-Watson).<br><br>
+        Los datos se guardan localmente en tu dispositivo.<br><br>
+        <strong style="color:var(--text)">Instalar en iPhone:</strong><br>
+        Abre este archivo en Safari → toca el botón compartir → "Añadir a la pantalla de inicio".
+      </p>
+    </div>
+    <div class="card">
+      <p class="card-title" style="margin-bottom:.4rem">Versión</p>
+      <p class="muted" style="font-size:13px">v2.0 PWA · 2026</p>
+      <p class="muted" style="font-size:12px;margin-top:6px">Desarrollada por <strong style="color:var(--text)">Claude (Anthropic)</strong> en colaboración con <strong style="color:var(--text)">Cristian Ortega</strong> · Topógrafo</p>
+      <p class="muted" style="font-size:11px;margin-top:4px">Método TIN Delaunay · Bowyer-Watson</p>
+    </div>
+    <div class="card">
+      <p class="card-title">Datos almacenados</p>
+      <p id="storage-info" class="muted" style="font-size:13px"></p>
+      <div class="btn-row" style="margin-top:.7rem">
+        <button class="btn btn-danger btn-sm" onclick="confirmarBorrarTodo()">🗑 Borrar todos los datos</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ===================== MODAL: EDITAR TRABAJO ===================== -->
+<div class="modal-overlay hidden" id="modal-edit-job">
+  <div class="modal-sheet">
+    <div class="modal-handle"></div>
+    <p class="modal-title">Editar trabajo</p>
+    <div class="field-group"><label class="field-label">Nombre *</label><input type="text" id="edit-nombre"></div>
+    <div class="field-group"><label class="field-label">Cliente</label><input type="text" id="edit-cliente"></div>
+    <div class="field-group"><label class="field-label">Ubicación</label><input type="text" id="edit-ubicacion"></div>
+    <div class="field-group"><label class="field-label">Fecha</label><input type="date" id="edit-fecha"></div>
+    <div class="btn-row">
+      <button class="btn btn-primary" onclick="guardarEditJob()">Guardar</button>
+      <button class="btn" onclick="closeModal('modal-edit-job')">Cancelar</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ===================== ALMACENAMIENTO =====================
+const DB={
+  save(key,val){try{localStorage.setItem(key,JSON.stringify(val));}catch(e){}},
+  load(key,def=null){try{const v=localStorage.getItem(key);return v?JSON.parse(v):def;}catch(e){return def;}},
+  remove(key){try{localStorage.removeItem(key);}catch(e){}}
+};
+
+function getJobs(){return DB.load('jobs',[]);}
+function saveJobs(jobs){DB.save('jobs',jobs);}
+function getJob(id){return getJobs().find(j=>j.id===id)||null;}
+function genId(){return Date.now().toString(36)+Math.random().toString(36).slice(2);}
+
+// ===================== ESTADO GLOBAL =====================
+let currentJobId=null;
+let currentCalcResults=null;
+let currentCalcPts=null;
+let currentCalcFmt=null;
+let currentCalcFileName='acopio';
+let rows=[],allCodes=[],results=[],pts=[],fmt='PNEZD',activeTab=0,csvFileName='acopio';
+
+// ===================== NAVEGACIÓN =====================
+function showScreen(name,opts={}){
+  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+  document.getElementById('screen-'+name).classList.add('active');
+  document.querySelectorAll('.nav-btn').forEach(b=>b.classList.remove('active'));
+  const navMap={trabajos:'nav-trabajos','nuevo-trabajo':'nav-nuevo',acerca:'nav-acerca'};
+  if(navMap[name]) document.getElementById(navMap[name]).classList.add('active');
+  if(name==='trabajos') renderJobList();
+  if(name==='trabajo') renderJobDetail();
+  if(name==='calc') initCalc();
+  if(name==='acerca') renderStorageInfo();
+  window.scrollTo(0,0);
+}
+
+function toast(msg,dur=2200){
+  const t=document.getElementById('toast');
+  t.textContent=msg;t.classList.add('show');
+  setTimeout(()=>t.classList.remove('show'),dur);
+}
+
+function openModal(id){document.getElementById(id).classList.remove('hidden');}
+function closeModal(id){document.getElementById(id).classList.add('hidden');}
+
+// ===================== TRABAJOS =====================
+function renderJobList(){
+  const jobs=getJobs();
+  const wrap=document.getElementById('job-list-wrap');
+  if(!jobs.length){
+    wrap.innerHTML='<div class="empty-state"><div class="empty-icon">📂</div><p style="font-weight:500;margin-bottom:6px">Sin trabajos aún</p><p class="muted" style="font-size:13px">Toca "Nuevo" para crear tu primer trabajo.</p></div>';
+    return;
+  }
+  wrap.innerHTML='<div class="job-list">'+jobs.slice().reverse().map(j=>{
+    const nc=j.calcs?j.calcs.length:0;
+    return `<div class="job-item" onclick="abrirTrabajo('${j.id}')">
+      <div class="job-meta">
+        <div class="job-name">${esc(j.nombre)}</div>
+        <div class="job-detail">${j.cliente?esc(j.cliente)+' · ':''}${j.ubicacion?esc(j.ubicacion)+' · ':''}${j.fecha||''}</div>
+      </div>
+      <div style="display:flex;flex-direction:column;align-items:flex-end;gap:6px">
+        <span class="job-badge">${nc} cálculo${nc!==1?'s':''}</span>
+        <button class="btn btn-danger btn-sm" onclick="event.stopPropagation();confirmarEliminarTrabajo('${j.id}')">🗑</button>
+      </div>
+    </div>`;
+  }).join('')+'</div>';
+}
+
+function crearTrabajo(){
+  const nombre=document.getElementById('nt-nombre').value.trim();
+  if(!nombre){toast('El nombre es obligatorio');return;}
+  const job={
+    id:genId(),
+    nombre,
+    cliente:document.getElementById('nt-cliente').value.trim(),
+    ubicacion:document.getElementById('nt-ubicacion').value.trim(),
+    fecha:document.getElementById('nt-fecha').value,
+    calcs:[],
+    creado:new Date().toISOString()
+  };
+  const jobs=getJobs();jobs.push(job);saveJobs(jobs);
+  ['nt-nombre','nt-cliente','nt-ubicacion'].forEach(id=>document.getElementById(id).value='');
+  document.getElementById('nt-fecha').value='';
+  currentJobId=job.id;
+  toast('Trabajo creado ✓');
+  showScreen('trabajo');
+}
+
+function abrirTrabajo(id){
+  currentJobId=id;
+  showScreen('trabajo');
+}
+
+function renderJobDetail(){
+  const job=getJob(currentJobId);
+  if(!job){showScreen('trabajos');return;}
+  document.getElementById('calc-job-subtitle').textContent=job.nombre;
+  document.getElementById('job-header-wrap').innerHTML=`
+    <div class="job-header">
+      <div class="job-header-name">${esc(job.nombre)}</div>
+      <div class="job-header-meta">
+        ${job.cliente?'<span>'+esc(job.cliente)+'</span> · ':''}
+        ${job.ubicacion?'<span>'+esc(job.ubicacion)+'</span> · ':''}
+        <span>${job.fecha||'Sin fecha'}</span>
+      </div>
+    </div>`;
+  const wrap=document.getElementById('calcs-wrap');
+  if(!job.calcs||!job.calcs.length){
+    wrap.innerHTML='<p class="muted" style="text-align:center;padding:1.5rem 0">Sin cálculos aún.<br>Toca "Nuevo cálculo" para empezar.</p>';
+    return;
+  }
+  wrap.innerHTML=job.calcs.slice().reverse().map((c,ri)=>{
+    const idx=job.calcs.length-1-ri;
+    const total=c.results?c.results.reduce((s,r)=>s+r.vol,0):0;
+    const na=c.results?c.results.length:0;
+    return `<div class="calc-item">
+      <div class="calc-item-header">
+        <div>
+          <div class="calc-name">${esc(c.nombre||'Cálculo sin nombre')}</div>
+          <div class="calc-summary">${na} acopio${na!==1?'s':''} · ${total.toFixed(2)} m³ total</div>
+          <div class="calc-date">${c.fecha||''}</div>
+        </div>
+        <div style="display:flex;gap:5px">
+          <button class="btn btn-sm" onclick="verCalculo(${idx})">👁 Ver</button>
+          <button class="btn btn-danger btn-sm" onclick="eliminarCalculo(${idx})">🗑</button>
+        </div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function openEditJob(){
+  const job=getJob(currentJobId);if(!job)return;
+  document.getElementById('edit-nombre').value=job.nombre||'';
+  document.getElementById('edit-cliente').value=job.cliente||'';
+  document.getElementById('edit-ubicacion').value=job.ubicacion||'';
+  document.getElementById('edit-fecha').value=job.fecha||'';
+  openModal('modal-edit-job');
+}
+function guardarEditJob(){
+  const nombre=document.getElementById('edit-nombre').value.trim();
+  if(!nombre){toast('El nombre es obligatorio');return;}
+  const jobs=getJobs();
+  const job=jobs.find(j=>j.id===currentJobId);
+  if(!job)return;
+  job.nombre=nombre;
+  job.cliente=document.getElementById('edit-cliente').value.trim();
+  job.ubicacion=document.getElementById('edit-ubicacion').value.trim();
+  job.fecha=document.getElementById('edit-fecha').value;
+  saveJobs(jobs);closeModal('modal-edit-job');renderJobDetail();toast('Trabajo actualizado ✓');
+}
+
+function confirmarEliminarTrabajo(id){
+  const jid=id||currentJobId;
+  if(!confirm('¿Eliminar este trabajo y todos sus cálculos? Esta acción no se puede deshacer.'))return;
+  const jobs=getJobs().filter(j=>j.id!==jid);
+  saveJobs(jobs);
+  if(!id){showScreen('trabajos');}else{renderJobList();}
+  toast('Trabajo eliminado');
+}
+
+function eliminarCalculo(idx){
+  if(!confirm('¿Eliminar este cálculo?'))return;
+  const jobs=getJobs();
+  const job=jobs.find(j=>j.id===currentJobId);
+  if(!job)return;
+  job.calcs.splice(idx,1);saveJobs(jobs);renderJobDetail();toast('Cálculo eliminado');
+}
+
+function guardarCalculo(){
+  if(!results||!results.length){toast('No hay resultados para guardar');return;}
+  const nombre=document.getElementById('calc-save-name').value.trim()||('Cálculo '+new Date().toLocaleDateString('es-CL'));
+  const jobs=getJobs();
+  const job=jobs.find(j=>j.id===currentJobId);
+  if(!job){toast('Trabajo no encontrado');return;}
+  const calcData={
+    id:genId(),
+    nombre,
+    fecha:new Date().toLocaleDateString('es-CL')+' '+new Date().toLocaleTimeString('es-CL',{hour:'2-digit',minute:'2-digit'}),
+    fmt,
+    csvFileName,
+    results:results.map(r=>({
+      name:r.name,fl:r.fl,tp:r.tp,vol:r.vol,area:r.area,
+      altMax:r.altMax,cotaMinP:r.cotaMinP,cotaMaxP:r.cotaMaxP,cotaCima:r.cotaCima,
+      nf:r.nf,na:r.na,
+      floorPts:r.floorPts,acoPts:r.acoPts
+    }))
+  };
+  job.calcs.push(calcData);saveJobs(jobs);
+  document.getElementById('save-status').textContent='✓ Guardado en "'+job.nombre+'"';
+  toast('Guardado ✓');
+}
+
+// ===================== VER CÁLCULO GUARDADO =====================
+function verCalculo(idx){
+  const job=getJob(currentJobId);if(!job||!job.calcs[idx])return;
+  const c=job.calcs[idx];
+  // Restaurar results para exports
+  results=c.results.map(r=>{
+    const floorContour=buildContourData(r.floorPts,6,40);
+    const acoContour=buildContourData([...r.floorPts,...r.acoPts],6,40);
+    return{...r,floorContour,acoContour};
+  });
+  fmt=c.fmt||'PNEZD';csvFileName=c.csvFileName||'acopio';
+  const wrap=document.getElementById('ver-calc-wrap');
+  const total=c.results.reduce((s,r)=>s+r.vol,0);
+  wrap.innerHTML=`
+    <h1 style="font-size:17px;margin-bottom:4px">${esc(c.nombre)}</h1>
+    <p class="subtitle">${c.fecha}</p>
+    <div class="card">
+      ${c.results.map(r=>`
+        <div class="result-block">
+          <p style="font-weight:500;margin-bottom:.4rem">${esc(r.name)} <span class="muted">piso: ${esc(r.fl)} · acopio: ${esc(r.tp)}</span></p>
+          <div class="metric-grid">
+            <div class="metric"><div class="metric-label">Volumen</div><div class="metric-value">${r.vol.toFixed(2)} m³</div></div>
+            <div class="metric"><div class="metric-label">Área base</div><div class="metric-value">${r.area.toFixed(1)} m²</div></div>
+            <div class="metric"><div class="metric-label">Altura máx.</div><div class="metric-value">${r.altMax.toFixed(3)} m</div></div>
+            <div class="metric"><div class="metric-label">Cota cima</div><div class="metric-value">${r.cotaCima.toFixed(3)} m</div></div>
+            <div class="metric"><div class="metric-label">Pts piso</div><div class="metric-value">${r.nf}</div></div>
+            <div class="metric"><div class="metric-label">Pts acopio</div><div class="metric-value">${r.na}</div></div>
+          </div>
+        </div>`).join('')}
+      <div class="metric-grid" style="margin-top:.5rem">
+        <div class="metric"><div class="metric-label">Volumen total</div><div class="metric-value" style="font-size:20px">${total.toFixed(2)} m³</div></div>
+        <div class="metric"><div class="metric-label">Acopios</div><div class="metric-value">${c.results.length}</div></div>
+      </div>
+    </div>
+    <div class="card">
+      <p class="card-title">Visualización</p>
+      <div class="map-tabs" id="ver-map-tabs"></div>
+      <div class="map-container"><canvas id="ver-mapcanvas" width="720" height="360"></canvas></div>
+    </div>
+    <div class="card">
+      <p class="card-title">Exportar</p>
+      <div class="btn-row">
+        <button class="btn" onclick="exportPDFCalc(${idx})">📄 PDF</button>
+        <button class="btn" onclick="exportDXFCalc(${idx})">📦 DXF</button>
+        <button class="btn" onclick="exportCSVCalc(${idx})">📊 CSV</button>
+      </div>
+      <p id="ver-exp-status" class="muted" style="margin-top:.4rem"></p>
+    </div>`;
+  showScreen('ver-calculo');
+  setTimeout(()=>buildVerMapTabs(c.results),100);
+}
+
+let verActiveTab=0;
+function buildVerMapTabs(cres){
+  const tabs=document.getElementById('ver-map-tabs');if(!tabs)return;
+  tabs.innerHTML='';
+  const ab=document.createElement('button');ab.className='map-tab active';ab.textContent='Todos';
+  ab.onclick=()=>{verActiveTab=0;updateVerTabs();drawMapOn('ver-mapcanvas',cres,-1);};tabs.appendChild(ab);
+  cres.forEach((r,i)=>{const btn=document.createElement('button');btn.className='map-tab';btn.textContent=r.name;btn.onclick=()=>{verActiveTab=i+1;updateVerTabs();drawMapOn('ver-mapcanvas',cres,i);};tabs.appendChild(btn);});
+  verActiveTab=0;drawMapOn('ver-mapcanvas',cres,-1);
+}
+function updateVerTabs(){document.getElementById('ver-map-tabs').querySelectorAll('.map-tab').forEach((b,i)=>b.className='map-tab'+(i===verActiveTab?' active':''));}
+
+function exportPDFCalc(idx){
+  const job=getJob(currentJobId);if(!job||!job.calcs[idx])return;
+  const c=job.calcs[idx];
+  results=c.results.map(r=>{
+    const floorContour=buildContourData(r.floorPts,6,40);
+    const acoContour=buildContourData([...r.floorPts,...r.acoPts],6,40);
+    return{...r,floorContour,acoContour};
+  });
+  const cv=document.getElementById('ver-mapcanvas');
+  doExportPDF(c.results,cv,c.csvFileName||'acopio',c.fmt||'PNEZD',job,c.nombre);
+  document.getElementById('ver-exp-status').textContent='✓ PDF generado';
+}
+function exportDXFCalc(idx){
+  const job=getJob(currentJobId);if(!job||!job.calcs[idx])return;
+  const c=job.calcs[idx];
+  const allPts=[...c.results.flatMap(r=>[...r.floorPts,...r.acoPts])];
+  doExportDXF(allPts,c.csvFileName||'acopio');
+  document.getElementById('ver-exp-status').textContent='✓ DXF descargado';
+}
+function exportCSVCalc(idx){
+  const job=getJob(currentJobId);if(!job||!job.calcs[idx])return;
+  const c=job.calcs[idx];
+  doExportCSV(c.results,c.csvFileName||'acopio');
+  document.getElementById('ver-exp-status').textContent='✓ CSV descargado';
+}
+
+// ===================== ACERCA =====================
+function renderStorageInfo(){
+  let bytes=0;try{for(let k in localStorage){if(localStorage.hasOwnProperty(k))bytes+=localStorage.getItem(k).length*2;}}catch(e){}
+  const jobs=getJobs();let totalCalcs=0;jobs.forEach(j=>totalCalcs+=(j.calcs||[]).length);
+  document.getElementById('storage-info').innerHTML=
+    jobs.length+' trabajo'+(jobs.length!==1?'s':'')+' · '+totalCalcs+' cálculo'+(totalCalcs!==1?'s':'')+
+    '<br>Espacio usado: ~'+Math.round(bytes/1024)+' KB';
+}
+function confirmarBorrarTodo(){
+  if(!confirm('¿Borrar TODOS los trabajos y cálculos? Esta acción es irreversible.'))return;
+  localStorage.removeItem('jobs');toast('Datos borrados');renderStorageInfo();
+}
+
+// ===================== CÁLCULO (wizard) =====================
+function initCalc(){
+  rows=[];allCodes=[];results=[];pts=[];fmt='PNEZD';activeTab=0;
+  ['panel-upload','panel-format','panel-results'].forEach((id,i)=>{
+    document.getElementById(id).style.display=i===0?'block':'none';
+  });
+  setStep(1);
+  document.getElementById('status').textContent='';
+  document.getElementById('calc-status').textContent='';
+  document.getElementById('save-status').textContent='';
+  document.getElementById('exp-status').textContent='';
+}
+const $=id=>document.getElementById(id);
+const FORMATS={PNEZD:{p:0,n:1,e:2,z:3,d:4},PENZD:{p:0,e:1,n:2,z:3,d:4},NEZD:{p:-1,n:0,e:1,z:2,d:3},ENZD:{p:-1,e:0,n:1,z:2,d:3}};
+const COL_NAMES={p:'N° Punto',n:'Norte (Y)',e:'Este (X)',z:'Cota (Z)',d:'Código'};
+const PAL=['#1D9E75','#378ADD','#D85A30','#BA7517','#D4537E','#639922'];
+const PAL_LIGHT=['#9FE1CB','#B5D4F4','#F5C4B3','#FAC775','#F4C0D1','#C0DD97'];
+
+function setStep(n){[1,2,3,4].forEach(i=>{const e=$('s'+i);e.className='step'+(i<n?' done':i===n?' active':'');});}
+
+function goBack(toStep){
+  if(toStep===1){$('panel-format').style.display='none';$('panel-upload').style.display='block';setStep(1);}
+  else if(toStep===2){$('panel-results').style.display='none';$('panel-format').style.display='block';setStep(2);if(allCodes.length)buildPairs(allCodes);}
+}
+
+$('fin').addEventListener('change',e=>readFile(e.target.files[0]));
+$('dropzone').addEventListener('dragover',e=>e.preventDefault());
+$('dropzone').addEventListener('drop',e=>{e.preventDefault();readFile(e.dataTransfer.files[0]);});
+
+function readFile(file){
+  if(!file)return;
+  const r=new FileReader();
+  r.onload=e=>{let t=e.target.result.replace(/^\uFEFF/,'').replace(/\r/g,'');processText(t,file.name);};
+  r.readAsText(file,'ISO-8859-1');
+}
+function processText(text,name){
+  const lines=text.split('\n').map(l=>l.trim()).filter(l=>l.length>0);
+  rows=lines.map(l=>l.split(',').map(c=>c.trim())).filter(r=>r.length>=3);
+  if(!rows.length){$('status').textContent='Error: archivo vacío';return;}
+  $('status').textContent='✓ '+name+' — '+rows.length+' puntos';
+  csvFileName=name.replace(/\.[^.]+$/,'');
+  autoDetectFormat(rows[0].length);
+  $('panel-upload').style.display='none';$('panel-format').style.display='block';setStep(2);
+}
+function autoDetectFormat(ncols){
+  if(ncols>=5){const s=rows.slice(0,5);const a1=s.map(r=>Math.abs(parseFloat(r[1]))).filter(v=>!isNaN(v)).reduce((a,b)=>a+b,0)/s.length;const a2=s.map(r=>Math.abs(parseFloat(r[2]))).filter(v=>!isNaN(v)).reduce((a,b)=>a+b,0)/s.length;selectFormat(a2>a1?'PENZD':'PNEZD');}
+  else selectFormat(ncols===4?'NEZD':'PNEZD');
+}
+function selectFormat(f){
+  fmt=f;Object.keys(FORMATS).forEach(k=>$('fmt-'+k)&&($('fmt-'+k).className='format-btn'+(k===f?' selected':'')));
+  renderPreview();updateCodes();
+}
+function renderPreview(){
+  const m=FORMATS[fmt],keys=Object.keys(m).filter(k=>m[k]>=0);
+  let html='<table class="preview-table"><thead><tr>'+keys.map(k=>'<th>'+COL_NAMES[k]+'</th>').join('')+'</tr></thead><tbody>';
+  rows.slice(0,6).forEach(r=>{html+='<tr>'+keys.map(k=>'<td>'+(m[k]<r.length?r[m[k]]:'—')+'</td>').join('')+'</tr>';});
+  $('preview-wrap').innerHTML=html+'</tbody></table>';
+  const ok=rows.slice(0,5).every(r=>!isNaN(parseFloat(r[m.n]))&&!isNaN(parseFloat(r[m.e]))&&!isNaN(parseFloat(r[m.z])));
+  $('format-status').textContent=ok?'✓ Columnas validadas':'⚠ Verifica el formato';
+}
+function updateCodes(){
+  const m=FORMATS[fmt];
+  if(m.d<0){allCodes=[];$('codes-wrap').innerHTML='<p class="muted">Sin columna de código</p>';return;}
+  const found=[...new Set(rows.map(r=>(r[m.d]||'').trim()).filter(v=>v&&isNaN(parseFloat(v))))].sort();
+  allCodes=found;
+  $('codes-wrap').innerHTML='<div style="margin-bottom:.7rem">'+found.map(c=>'<span class="tag">'+c+'</span>').join('')+'</div>';
+  buildPairs(found);
+}
+function buildPairs(found){
+  const wrap=$('pairs-wrap');wrap.innerHTML='';
+  if(!found.length){wrap.innerHTML='<p class="muted">No se detectaron códigos</p>';return;}
+  const terreno=found.filter(c=>/^P\d*$/i.test(c));
+  const acopio=found.filter(c=>/ACO|^H$/i.test(c));
+  const n=Math.max(terreno.length,acopio.length,1);
+  for(let i=0;i<n;i++)addPair(wrap,found,terreno[i]||found[0],acopio[i]||found[found.length-1],i);
+  const btn=document.createElement('button');btn.className='btn';btn.style.marginTop='4px';btn.innerHTML='+ Agregar acopio';
+  btn.onclick=()=>{const cnt=wrap.querySelectorAll('.pair').length;addPair(wrap,found,found[0],found[found.length-1],cnt);wrap.appendChild(btn);};
+  wrap.appendChild(btn);
+}
+function addPair(wrap,found,flDef,tpDef,i){
+  const div=document.createElement('div');div.className='pair';
+  div.innerHTML='<div><label class="muted" style="display:block;margin-bottom:2px;font-size:12px">Terreno natural</label><select id="fl-'+i+'">'+found.map(c=>'<option'+(c===flDef?' selected':'')+'>'+c+'</option>').join('')+'</select></div>'
+    +'<span style="text-align:center;color:#999;font-size:14px">→</span>'
+    +'<div><label class="muted" style="display:block;margin-bottom:2px;font-size:12px">Acopio</label><select id="tp-'+i+'">'+found.map(c=>'<option'+(c===tpDef?' selected':'')+'>'+c+'</option>').join('')+'</select></div>'
+    +'<button class="btn btn-sm" style="padding:4px 7px;margin-top:16px" onclick="this.closest(\'.pair\').remove()">✕</button>';
+  wrap.appendChild(div);
+}
+function getPts(){
+  const m=FORMATS[fmt];
+  return rows.map(r=>({e:parseFloat(r[m.e]),n:parseFloat(r[m.n]),z:parseFloat(r[m.z]),code:(m.d>=0?(r[m.d]||'').trim():'')}))
+    .filter(p=>!isNaN(p.e)&&!isNaN(p.n)&&!isNaN(p.z)&&p.code&&isNaN(parseFloat(p.code)));
+}
+
+// ===================== GEOMETRÍA =====================
+function circumcircle(ax,ay,bx,by,cx,cy){
+  const D=2*(ax*(by-cy)+bx*(cy-ay)+cx*(ay-by));if(Math.abs(D)<1e-10)return null;
+  const ux=((ax*ax+ay*ay)*(by-cy)+(bx*bx+by*by)*(cy-ay)+(cx*cx+cy*cy)*(ay-by))/D;
+  const uy=((ax*ax+ay*ay)*(cx-bx)+(bx*bx+by*by)*(ax-cx)+(cx*cx+cy*cy)*(bx-ax))/D;
+  return{ux,uy,r2:(ax-ux)**2+(ay-uy)**2};
+}
+function bowyer(pts2d){
+  const n=pts2d.length;if(n<3)return[];
+  const xs=pts2d.map(p=>p[0]),ys=pts2d.map(p=>p[1]);
+  const dmax=Math.max(Math.max(...xs)-Math.min(...xs),Math.max(...ys)-Math.min(...ys))*10;
+  const mx=(Math.min(...xs)+Math.max(...xs))/2,my=(Math.min(...ys)+Math.max(...ys))/2;
+  const sp=[...pts2d,[mx-dmax,my-dmax],[mx,my+dmax],[mx+dmax,my-dmax]],N=sp.length;
+  let tris=[[N-3,N-2,N-1]];
+  for(let pi=0;pi<n;pi++){
+    const px=sp[pi][0],py=sp[pi][1],bad=[],edges=[];
+    for(const t of tris){const cc=circumcircle(sp[t[0]][0],sp[t[0]][1],sp[t[1]][0],sp[t[1]][1],sp[t[2]][0],sp[t[2]][1]);if(cc&&(px-cc.ux)**2+(py-cc.uy)**2<cc.r2-1e-10)bad.push(t);}
+    bad.forEach(t=>edges.push([t[0],t[1]],[t[1],t[2]],[t[2],t[0]]));
+    const bnd=edges.filter(e=>!edges.some(f=>f!==e&&f[0]===e[1]&&f[1]===e[0]));
+    bad.forEach(b=>{const i=tris.indexOf(b);if(i>=0)tris.splice(i,1);});
+    bnd.forEach(e=>tris.push([e[0],e[1],pi]));
+  }
+  return tris.filter(t=>t[0]<n&&t[1]<n&&t[2]<n);
+}
+function baryInterp(tri,pts3d,qe,qn){
+  const[a,b,c]=tri,x1=pts3d[a][0],y1=pts3d[a][1],z1=pts3d[a][2],x2=pts3d[b][0],y2=pts3d[b][1],z2=pts3d[b][2],x3=pts3d[c][0],y3=pts3d[c][1],z3=pts3d[c][2];
+  const det=(y2-y3)*(x1-x3)+(x3-x2)*(y1-y3);if(Math.abs(det)<1e-12)return null;
+  const l1=((y2-y3)*(qe-x3)+(x3-x2)*(qn-y3))/det,l2=((y3-y1)*(qe-x3)+(x1-x3)*(qn-y3))/det,l3=1-l1-l2;
+  if(l1<-1e-9||l2<-1e-9||l3<-1e-9)return null;
+  return l1*z1+l2*z2+l3*z3;
+}
+function hull(pts2d){
+  if(pts2d.length<3)return pts2d;
+  const p=[...pts2d].sort((a,b)=>a[0]-b[0]||a[1]-b[1]);
+  const cross=(o,a,b)=>(a[0]-o[0])*(b[1]-o[1])-(a[1]-o[1])*(b[0]-o[0]);
+  const lo=[],hi=[];
+  for(const pt of p){while(lo.length>=2&&cross(lo[lo.length-2],lo[lo.length-1],pt)<=0)lo.pop();lo.push(pt);}
+  for(let i=p.length-1;i>=0;i--){const pt=p[i];while(hi.length>=2&&cross(hi[hi.length-2],hi[hi.length-1],pt)<=0)hi.pop();hi.push(pt);}
+  hi.pop();lo.pop();return lo.concat(hi);
+}
+function inHull(h,e,n){
+  const len=h.length;let inside=false;
+  for(let i=0,j=len-1;i<len;j=i++){const xi=h[i][0],yi=h[i][1],xj=h[j][0],yj=h[j][1];if(((yi>n)!=(yj>n))&&(e<(xj-xi)*(n-yi)/(yj-yi)+xi))inside=!inside;}
+  return inside;
+}
+function marchingSquares(z00,z01,z10,z11,level,e0,e1,n0,n1){
+  const segs=[],interp=(za,zb,va,vb)=>va+(vb-va)*(level-za)/(zb-za);
+  const idx=(z00>level?8:0)|(z01>level?4:0)|(z11>level?2:0)|(z10>level?1:0);
+  const pts={0:[interp(z00,z01,e0,e1),n0],1:[e1,interp(z01,z11,n0,n1)],2:[interp(z10,z11,e0,e1),n1],3:[e0,interp(z00,z10,n0,n1)]};
+  const cases={1:[[3,2]],2:[[2,1]],3:[[3,1]],4:[[1,0]],5:[[3,0],[2,1]],6:[[2,0]],7:[[3,0]],8:[[0,3]],9:[[0,2]],10:[[0,1],[3,2]],11:[[0,1]],12:[[1,3]],13:[[1,2]],14:[[2,3]],15:[]};
+  (cases[idx&15]||[]).forEach(([a,b])=>{const pa=pts[a],pb=pts[b];segs.push([pa[0],pa[1],pb[0],pb[1]]);});
+  return segs;
+}
+function buildContourData(surfPts,nContours=6,gRes=40){
+  const eMin=Math.min(...surfPts.map(p=>p.e)),eMax=Math.max(...surfPts.map(p=>p.e));
+  const nMin=Math.min(...surfPts.map(p=>p.n)),nMax=Math.max(...surfPts.map(p=>p.n));
+  const zMin=Math.min(...surfPts.map(p=>p.z)),zMax=Math.max(...surfPts.map(p=>p.z));
+  const gsE=(eMax-eMin)/gRes,gsN=(nMax-nMin)/gRes;
+  const pts3=surfPts.map(p=>[p.e,p.n,p.z]);
+  const tris=bowyer(pts3.map(p=>p.slice(0,2)));
+  const h=hull(pts3.map(p=>p.slice(0,2)));
+  const grid=[];
+  for(let gi=0;gi<=gRes;gi++){grid.push([]);for(let gj=0;gj<=gRes;gj++){
+    const ge=eMin+gj*gsE,gn=nMin+gi*gsN;
+    if(!inHull(h,ge,gn)){grid[gi].push(null);continue;}
+    let z=null;for(const t of tris){const v=baryInterp(t,pts3,ge,gn);if(v!==null){z=v;break;}}
+    grid[gi].push(z);
+  }}
+  const cStep=(zMax-zMin)/(nContours+1);
+  const contours=[];
+  for(let ci=1;ci<=nContours;ci++){
+    const level=zMin+ci*cStep;const segs=[];
+    for(let gi=0;gi<gRes;gi++)for(let gj=0;gj<gRes;gj++){
+      const z00=grid[gi][gj],z01=grid[gi][gj+1],z10=grid[gi+1][gj],z11=grid[gi+1][gj+1];
+      if(z00===null||z01===null||z10===null||z11===null)continue;
+      marchingSquares(z00,z01,z10,z11,level,eMin+gj*gsE,eMin+(gj+1)*gsE,nMin+gi*gsN,nMin+(gi+1)*gsN).forEach(s=>segs.push(s));
+    }
+    contours.push({level,segs});
+  }
+  return{contours,hull:h,zMin,zMax};
+}
+function calcVol(floorPts,acoPts){
+  const allP=[...floorPts,...acoPts];
+  const es=allP.map(p=>p.e),ns=allP.map(p=>p.n);
+  const eMin=Math.min(...es),eMax=Math.max(...es),nMin=Math.min(...ns),nMax=Math.max(...ns);
+  const gs=Math.max(0.15,Math.min(eMax-eMin,nMax-nMin)/180);
+  const fp3=floorPts.map(p=>[p.e,p.n,p.z]),ap3=allP.map(p=>[p.e,p.n,p.z]);
+  const flTris=bowyer(fp3.map(p=>p.slice(0,2))),tpTris=bowyer(ap3.map(p=>p.slice(0,2)));
+  const h=hull(ap3.map(p=>p.slice(0,2)));
+  let vol=0,cells=0;
+  for(let e=eMin+gs/2;e<=eMax;e+=gs)for(let n=nMin+gs/2;n<=nMax;n+=gs){
+    if(!inHull(h,e,n))continue;
+    let zf=null,zt=null;
+    for(const t of flTris){const z=baryInterp(t,fp3,e,n);if(z!==null){zf=z;break;}}
+    for(const t of tpTris){const z=baryInterp(t,ap3,e,n);if(z!==null){zt=z;break;}}
+    if(zf!==null&&zt!==null&&zt>zf+0.001){vol+=(zt-zf)*gs*gs;cells++;}
+  }
+  return{vol,area:cells*gs*gs};
+}
+
+function runCalc(){
+  pts=getPts();
+  if(!pts.length){$('calc-status').textContent='Error: no se encontraron puntos válidos.';return;}
+  const pairs=[];let i=0;
+  while($('fl-'+i)){pairs.push({fl:$('fl-'+i).value,tp:$('tp-'+i).value});i++;}
+  $('calc-status').textContent='Calculando...';setStep(3);
+  setTimeout(()=>{
+    results=[];let ok=true;
+    pairs.forEach((pair,idx)=>{
+      const fp=pts.filter(p=>p.code===pair.fl),ap=pts.filter(p=>p.code===pair.tp);
+      if(!fp.length||!ap.length){$('calc-status').textContent='No se encontraron puntos para: '+pair.fl+' o '+pair.tp;ok=false;return;}
+      const{vol,area}=calcVol(fp,ap);
+      const fz=fp.map(p=>p.z),az=ap.map(p=>p.z);
+      const floorContour=buildContourData(fp,6,40);
+      const acoContour=buildContourData([...fp,...ap],6,40);
+      results.push({name:'Acopio '+(idx+1),fl:pair.fl,tp:pair.tp,vol,area,nf:fp.length,na:ap.length,
+        floorPts:fp,acoPts:ap,floorContour,acoContour,
+        cotaMinP:Math.min(...fz),cotaMaxP:Math.max(...fz),cotaCima:Math.max(...az),altMax:Math.max(...az)-Math.min(...fz)});
+    });
+    if(ok)showCalcResults();
+  },50);
+}
+
+function showCalcResults(){
+  setStep(4);$('panel-format').style.display='none';$('panel-results').style.display='block';
+  const wrap=$('results-wrap');wrap.innerHTML='';
+  results.forEach(r=>{
+    const d=document.createElement('div');d.className='result-block';
+    d.innerHTML='<p style="font-weight:500;margin-bottom:.4rem">'+r.name+' <span class="muted">piso: '+r.fl+' · acopio: '+r.tp+'</span></p>'
+      +'<div class="metric-grid">'
+      +'<div class="metric"><div class="metric-label">Volumen</div><div class="metric-value">'+r.vol.toFixed(2)+' m³</div></div>'
+      +'<div class="metric"><div class="metric-label">Área base</div><div class="metric-value">'+r.area.toFixed(1)+' m²</div></div>'
+      +'<div class="metric"><div class="metric-label">Altura máx.</div><div class="metric-value">'+r.altMax.toFixed(3)+' m</div></div>'
+      +'<div class="metric"><div class="metric-label">Cota cima</div><div class="metric-value">'+r.cotaCima.toFixed(3)+' m</div></div>'
+      +'<div class="metric"><div class="metric-label">Pts piso</div><div class="metric-value">'+r.nf+'</div></div>'
+      +'<div class="metric"><div class="metric-label">Pts acopio</div><div class="metric-value">'+r.na+'</div></div>'
+      +'</div>';
+    wrap.appendChild(d);
+  });
+  const total=results.reduce((s,r)=>s+r.vol,0);
+  $('totals-wrap').innerHTML='<div class="metric"><div class="metric-label">Volumen total</div><div class="metric-value" style="font-size:20px">'+total.toFixed(2)+' m³</div></div>'
+    +'<div class="metric"><div class="metric-label">Acopios</div><div class="metric-value">'+results.length+'</div></div>'
+    +'<div class="metric"><div class="metric-label">Total puntos</div><div class="metric-value">'+pts.length+'</div></div>';
+  buildMapTabs();
+}
+
+function buildMapTabs(){
+  const tabs=$('map-tabs');tabs.innerHTML='';
+  const ab=document.createElement('button');ab.className='map-tab active';ab.textContent='Todos';
+  ab.onclick=()=>{activeTab=0;updateTabs();drawMapOn('mapcanvas',results,-1);};tabs.appendChild(ab);
+  results.forEach((r,i)=>{const btn=document.createElement('button');btn.className='map-tab';btn.textContent=r.name;btn.onclick=()=>{activeTab=i+1;updateTabs();drawMapOn('mapcanvas',results,i);};tabs.appendChild(btn);});
+  activeTab=0;drawMapOn('mapcanvas',results,-1);
+}
+function updateTabs(){$('map-tabs').querySelectorAll('.map-tab').forEach((b,i)=>b.className='map-tab'+(i===activeTab?' active':''));}
+
+// ===================== DRAW MAP (unificado) =====================
+function drawMapOn(canvasId,res,idx){
+  const cv=document.getElementById(canvasId);if(!cv)return;
+  const ctx=cv.getContext('2d'),W=cv.width,H=cv.height;
+  ctx.clearRect(0,0,W,H);ctx.fillStyle='#f5f4f0';ctx.fillRect(0,0,W,H);
+  const dl=idx<0?res:[res[idx]];if(!dl.length)return;
+  const allP=dl.flatMap(r=>[...r.floorPts,...r.acoPts]);
+  const es=allP.map(p=>p.e),ns=allP.map(p=>p.n);
+  const eMin=Math.min(...es),eMax=Math.max(...es),nMin=Math.min(...ns),nMax=Math.max(...ns);
+  const pad=44,sx=(W-2*pad)/(eMax-eMin||1),sy=(H-2*pad)/(nMax-nMin||1),sc=Math.min(sx,sy);
+  const offX=pad+(W-2*pad-(eMax-eMin)*sc)/2,offY=pad+(H-2*pad-(nMax-nMin)*sc)/2;
+  const toX=e=>offX+(e-eMin)*sc,toY=n=>H-offY-(n-nMin)*sc;
+  dl.forEach((r,ri)=>{
+    const col=PAL[ri%PAL.length],colLight=PAL_LIGHT[ri%PAL_LIGHT.length];
+    const fp=r.floorPts,ap=r.acoPts,allRP=[...fp,...ap];
+    const rzs=allRP.map(p=>p.z),rzMin=Math.min(...rzs),rzMax=Math.max(...rzs);
+    const hPts=hull(allRP.map(p=>[p.e,p.n]));
+    ctx.beginPath();hPts.forEach((p,i)=>i===0?ctx.moveTo(toX(p[0]),toY(p[1])):ctx.lineTo(toX(p[0]),toY(p[1])));
+    ctx.closePath();ctx.fillStyle=colLight+'55';ctx.fill();
+    r.acoContour.contours.forEach((c,ci)=>{
+      ctx.beginPath();ctx.strokeStyle=col+(Math.round(80+ci*20).toString(16));ctx.lineWidth=0.8;
+      c.segs.forEach(s=>{ctx.moveTo(toX(s[0]),toY(s[1]));ctx.lineTo(toX(s[2]),toY(s[3]));});
+      ctx.stroke();
+    });
+    ctx.beginPath();hPts.forEach((p,i)=>i===0?ctx.moveTo(toX(p[0]),toY(p[1])):ctx.lineTo(toX(p[0]),toY(p[1])));
+    ctx.closePath();ctx.strokeStyle=col;ctx.lineWidth=1.5;ctx.setLineDash([6,3]);ctx.stroke();ctx.setLineDash([]);
+    fp.forEach(p=>{ctx.beginPath();ctx.arc(toX(p.e),toY(p.n),3,0,Math.PI*2);ctx.fillStyle='#fff';ctx.fill();ctx.strokeStyle=col;ctx.lineWidth=1.2;ctx.stroke();});
+    ap.forEach(p=>{const rel=(p.z-rzMin)/(rzMax-rzMin||1);ctx.beginPath();ctx.arc(toX(p.e),toY(p.n),2+rel*4,0,Math.PI*2);ctx.fillStyle=col;ctx.fill();});
+    const cx=allRP.reduce((s,p)=>s+p.e,0)/allRP.length,cy=allRP.reduce((s,p)=>s+p.n,0)/allRP.length;
+    ctx.font='bold 11px sans-serif';ctx.fillStyle=col;ctx.textAlign='center';
+    ctx.fillText(r.name+' · '+r.vol.toFixed(0)+' m³',toX(cx),toY(cy)-8);
+  });
+  const scaleM=Math.pow(10,Math.floor(Math.log10((eMax-eMin)/4)||0));
+  const scalePx=scaleM*sc,sx2=W-pad-scalePx,sy2=H-14;
+  ctx.strokeStyle='#555';ctx.lineWidth=1.5;ctx.setLineDash([]);
+  ctx.beginPath();ctx.moveTo(sx2,sy2);ctx.lineTo(sx2+scalePx,sy2);ctx.stroke();
+  [sx2,sx2+scalePx].forEach(x=>{ctx.beginPath();ctx.moveTo(x,sy2-4);ctx.lineTo(x,sy2+4);ctx.stroke();});
+  ctx.font='10px sans-serif';ctx.fillStyle='#555';ctx.textAlign='center';ctx.fillText(scaleM+' m',sx2+scalePx/2,sy2-7);
+  ctx.save();ctx.translate(pad-10,pad+10);ctx.strokeStyle='#555';ctx.fillStyle='#555';ctx.lineWidth=1.2;
+  ctx.beginPath();ctx.moveTo(0,12);ctx.lineTo(0,-12);ctx.stroke();
+  ctx.beginPath();ctx.moveTo(0,-12);ctx.lineTo(-5,-5);ctx.lineTo(5,-5);ctx.closePath();ctx.fill();
+  ctx.font='bold 11px sans-serif';ctx.textAlign='center';ctx.fillText('N',0,22);ctx.restore();
+}
+
+// ===================== EXPORTAR =====================
+function doExportPDF(res,canvas,fn,f,job,calcNombre){
+  const{jsPDF}=window.jspdf;const doc=new jsPDF({unit:'mm',format:'a4'});
+  const date=new Date().toLocaleDateString('es-CL');
+  doc.setFontSize(16);doc.setFont(undefined,'bold');doc.text('Reporte de Volumetría de Acopios',20,20);
+  doc.setFontSize(10);doc.setFont(undefined,'normal');
+  if(job){doc.text('Trabajo: '+job.nombre,20,28);if(job.cliente)doc.text('Cliente: '+job.cliente,20,34);}
+  if(calcNombre)doc.text('Cálculo: '+calcNombre,20,job?40:28);
+  doc.text('Fecha: '+date,20,job?(calcNombre?46:40):34);
+  doc.text('Formato: '+(f||fmt)+' · Método: TIN Delaunay',20,job?(calcNombre?52:46):40);
+  const imgY=job?(calcNombre?58:52):46;
+  if(canvas)doc.addImage(canvas.toDataURL('image/png'),'PNG',20,imgY,170,90);
+  let y=imgY+96;
+  res.forEach(r=>{
+    if(y>240){doc.addPage();y=20;}
+    doc.setFontSize(12);doc.setFont(undefined,'bold');doc.text(r.name+' — Piso: '+r.fl+' / Acopio: '+r.tp,20,y);y+=6;
+    doc.setFontSize(9);doc.setFont(undefined,'normal');
+    [['Volumen',r.vol.toFixed(2)+' m³'],['Área base',r.area.toFixed(1)+' m²'],['Altura máx.',r.altMax.toFixed(3)+' m'],
+     ['Cota mín. piso',r.cotaMinP.toFixed(3)+' m'],['Cota máx. piso',r.cotaMaxP.toFixed(3)+' m'],
+     ['Cota cima',r.cotaCima.toFixed(3)+' m'],['Puntos terreno',r.nf+''],['Puntos acopio',r.na+'']
+    ].forEach(([l,v])=>{doc.text(l+':',25,y);doc.text(v,100,y);y+=5;});
+    doc.line(20,y,190,y);y+=6;
+  });
+  const total=res.reduce((s,r)=>s+r.vol,0);
+  doc.setFontSize(11);doc.setFont(undefined,'bold');doc.text('Volumen total: '+total.toFixed(2)+' m³',20,y+2);
+  doc.save((fn||csvFileName)+'_reporte_'+date.replace(/\//g,'-')+'.pdf');
+}
+function exportPDF(){
+  $('exp-status').textContent='Generando PDF...';
+  const job=getJob(currentJobId);
+  const calcNombre=document.getElementById('calc-save-name').value.trim();
+  doExportPDF(results,$('mapcanvas'),csvFileName,fmt,job,calcNombre);
+  $('exp-status').textContent='✓ PDF generado';
+}
+function doExportDXF(allPts,fn){
+  const codes=[...new Set(allPts.map(p=>p.code))];
+  let dxf='0\nSECTION\n2\nHEADER\n0\nENDSEC\n';
+  dxf+='0\nSECTION\n2\nTABLES\n0\nTABLE\n2\nLAYER\n70\n'+codes.length+'\n';
+  codes.forEach((c,i)=>{dxf+='0\nLAYER\n2\n'+c+'\n70\n0\n62\n'+(i+1)+'\n6\nContinuous\n';});
+  dxf+='0\nENDTAB\n0\nENDSEC\n0\nSECTION\n2\nENTITIES\n';
+  allPts.forEach(p=>{dxf+='0\nPOINT\n8\n'+p.code+'\n10\n'+p.e.toFixed(3)+'\n20\n'+p.n.toFixed(3)+'\n30\n'+p.z.toFixed(3)+'\n';});
+  dxf+='0\nENDSEC\n0\nEOF\n';
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(new Blob([dxf],{type:'text/plain'}));
+  a.download=(fn||csvFileName)+'_'+new Date().toLocaleDateString('es-CL').replace(/\//g,'-')+'.dxf';
+  a.click();
+}
+function exportDXF(){
+  $('exp-status').textContent='Generando DXF...';
+  doExportDXF(pts,csvFileName);
+  $('exp-status').textContent='✓ DXF descargado';
+}
+function doExportCSV(res,fn){
+  let csv='Acopio,Piso,Acopio,Volumen m3,Area m2,Altura m,Cota min piso,Cota max piso,Cota cima,Pts piso,Pts acopio\n';
+  res.forEach(r=>{csv+=r.name+','+r.fl+','+r.tp+','+r.vol.toFixed(2)+','+r.area.toFixed(1)+','+r.altMax.toFixed(3)+','+r.cotaMinP.toFixed(3)+','+r.cotaMaxP.toFixed(3)+','+r.cotaCima.toFixed(3)+','+r.nf+','+r.na+'\n';});
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(new Blob([csv],{type:'text/csv'}));
+  a.download=(fn||csvFileName)+'_resultado.csv';a.click();
+}
+function exportCSVRes(){
+  $('exp-status').textContent='Generando CSV...';
+  doExportCSV(results,csvFileName);
+  $('exp-status').textContent='✓ CSV descargado';
+}
+
+// ===================== UTILS =====================
+function esc(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+
+// ===================== INIT =====================
+document.getElementById('nt-fecha').value=new Date().toISOString().split('T')[0];
+renderJobList();
+</script>
+</body>
+</html>
